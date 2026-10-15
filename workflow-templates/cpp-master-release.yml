@@ -1,0 +1,16 @@
+name: 公司 C++ master 发布
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 构建、测试与发布
+    uses: wwjszz/cicd_template/.github/workflows/cpp-release.yml@main
+    secrets:
+      CI_SSH_KEY: ${{ secrets.CI_SSH_KEY }}
