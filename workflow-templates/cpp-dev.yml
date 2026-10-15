@@ -1,11 +1,8 @@
-name: C++ lab CI
+name: C++ development CI
 
 on:
   push:
-    branches: [$default-branch]
-  pull_request:
-    branches: [$default-branch]
-  workflow_dispatch:
+    branches-ignore: [$default-branch]
 
 permissions:
   contents: read
