@@ -1,0 +1,7 @@
+{
+  "name": "wt-cicd-lab C++ 构建与测试",
+  "description": "使用组织 lab-runners 执行 CMake Release 构建与 CTest 测试。支持默认分支 push、PR 和手动运行；项目需要提供 build.sh。",
+  "categories": [
+    "C++"
+  ]
+}

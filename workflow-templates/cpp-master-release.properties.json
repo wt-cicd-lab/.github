@@ -1,4 +1,0 @@
-{
-  "name": "公司 C++ master 发布",
-  "description": "master 更新后，调用公共发布工作流，在构建与测试成功后创建版本标签和 GitHub Release。"
-}
