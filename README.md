@@ -1,78 +1,93 @@
-# C++ CI 工作流与组织模板
+# C++ CI 使用说明
 
-为业务仓库提供三套入口，分支规则固定使用 `master`，不随仓库默认分支变化。
+使用前准备好：
 
-| 模板 | 触发条件 | 执行内容 |
-| --- | --- | --- |
-| `cpp-build.yml` | 非 `master` 分支 push | Prepare → Release 构建 → 测试 |
-| `cpp-coverage.yml` | 非 `master` 分支 push | Prepare → Debug 覆盖率构建 → 测试 → 覆盖率报告与上传 |
-| `cpp-release.yml` | 仅 `master` 分支 push | Release 构建与测试 → 自动打 tag → 检出该 tag → RelWithDebInfo 构建与测试 → 打包上传 |
+- 仓库或组织 Secret `CI_SSH_KEY`，用于拉取源码、私有依赖和推送 tag，并授权业务仓库使用。
+- 在线 runner，标签包含 `self-hosted, linux, x64, wwj-cicd`；提供 Docker 和镜像 `localhost:5000/cxx_builder_devtoolset_8:1.3`。
+- 可执行的项目 `./build.sh`，支持 `-b -t Release`、`-b -t Debug -C`、`-b -t RelWithDebInfo`、`-T`。构建输出到 `build/`，测试程序放在 `build/run_test/`；`-T` 负责创建并推送新 tag。
 
-三个模板均不响应 tag push。分支删除事件也会跳过。
-例如向 `feature/demo` 或 `main` push 会执行 build、coverage；向 `master` push 只执行 release。
-release 在模板入口和公共工作流内部都检查 `refs/heads/master`，其他分支直接调用公共工作流也会跳过。
-build、coverage 的公共工作流同样限制为非 `master` 分支的 push。
+## 1. 使用三个模板
 
-## 目录与命名
+| 模板文件 | GitHub 页面名称 | 触发条件 | 执行内容 |
+| --- | --- | --- | --- |
+| `cpp-build.yml` | C++ 构建与测试（非 master） | 非 `master` 分支 push | Release 构建、测试 |
+| `cpp-coverage.yml` | C++ 覆盖率（非 master） | 非 `master` 分支 push | Debug 构建、测试、上传覆盖率报告 |
+| `cpp-release.yml` | C++ 打标与归档（仅 master） | 仅 `master` 分支 push | 构建测试、打 tag、RelWithDebInfo 构建测试、上传归档 |
 
-```text
-.github/workflows/
-  cpp-build.yml          # 可复用：Release 构建与测试
-  cpp-coverage.yml       # 可复用：Debug 构建、测试与覆盖率
-  cpp-release.yml        # 可复用：打标及构建产物归档
-  cpp-ci.yml             # 保留的通用可复用入口，三个模板不引用它
-actions/
-  action.yml            # 执行指定阶段的 composite action
-  run.sh                # 启动构建容器
-  scripts/              # prepare/build/test/coverage/tag/package 实现
-workflow-templates/
-  cpp-build.yml
-  cpp-build.properties.json
-  cpp-coverage.yml
-  cpp-coverage.properties.json
-  cpp-release.yml
-  cpp-release.properties.json
-```
+1. 在业务仓库打开 **Actions → New workflow**，搜索上面的模板名称，点击 **Configure**。
+2. 按需添加模板，将生成的 YAML 提交到业务仓库的 `.github/workflows/`。
+3. 向开发分支 push 运行 build、coverage；向 `master` push 运行 release。
 
-`cpp-build.yml`、`cpp-coverage.yml`、`cpp-release.yml` 的名字可以保留，分别与三种职责对应。
-GitHub Actions 页面显示的名称由 YAML 中的 `name` 决定。
-`cpp-release.yml` 当前负责打标和 artifact 归档，不创建 GitHub Release 页面。
+也可以直接复制本仓库 [`workflow-templates/`](workflow-templates/) 下的三个 `.yml` 到业务仓库的 `.github/workflows/`，不需要复制 `.properties.json`。
 
-本仓库名称是 `wt-cicd-lab/.github`；公共工作流仍必须放在仓库内部的 `.github/workflows/`。
-因此服务器路径是 `/home/wangwenjie/test_dev/.github/.github/workflows/`，前一个 `.github` 是仓库目录。
+三个模板都忽略 tag push。build、coverage 不能在 `master` 运行；release 只能在 `master` 运行。
+覆盖率报告和发布归档在对应 Actions 运行页面的 **Artifacts** 下载；release 不创建 GitHub Release 页面。
 
-## 接入与发布
+## 2. 自己写 workflow、引用和传参
 
-1. 将公共工作流和 `actions/` 发布到本仓库的 `com_dev` 分支。当前三个模板和公共 action 引用均固定使用 `@com_dev`。
-2. 将 `workflow-templates/` 发布到组织 `.github` 仓库的默认分支，模板才会在业务仓库的 **Actions → New workflow** 中出现。
-3. 在业务仓库按需添加 build、coverage 和 release 模板，保存到业务仓库的 `.github/workflows/`。
-4. 向非 `master` 分支 push 运行 build、coverage；合并或 push 到 `master` 自动运行 release。
+### 使用公共 workflow
 
-模板中的调用路径示例：
+三个固定工作流 `cpp-build.yml`、`cpp-coverage.yml`、`cpp-release.yml` 只接收 Secret `CI_SSH_KEY`，没有可通过 `with` 修改的输入参数。
+
+需要自选 runner、构建类型、测试和覆盖率时，引用 [`cpp-ci.yml`](.github/workflows/cpp-ci.yml)。在业务仓库创建 `.github/workflows/custom-ci.yml`：
 
 ```yaml
-uses: wt-cicd-lab/.github/.github/workflows/cpp-build.yml@com_dev
+name: Custom C++ CI
+
+on:
+  push:
+    branches-ignore: [master]
+    tags-ignore: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: wt-cicd-lab/.github/.github/workflows/cpp-ci.yml@com_dev
+    with:
+      runner-label: wwj-cicd
+      build-type: Debug
+      run-tests: true
+      coverage: true
+    secrets:
+      CI_SSH_KEY: ${{ secrets.CI_SSH_KEY }}
 ```
 
-公共工作流中的 action 引用为 `wt-cicd-lab/.github/actions@com_dev`。
-两者都指向本仓库；业务项目无需复制 `actions/`。
-`com_dev` 是公共实现仓库的引用分支，与业务仓库中允许发版的 `master` 分支规则相互独立。
-以后更换公共实现引用时，需要同时更新模板中的 workflow 引用与公共工作流中的 action 引用。
+| 参数 | 类型 | 必填 / 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `runner-label` | string | 必填 | runner 的额外标签，示例为 `wwj-cicd` |
+| `build-type` | string | `Release` | `Debug`、`Release`、`RelWithDebInfo` |
+| `run-tests` | boolean | `true` | 是否运行测试 |
+| `coverage` | boolean | `false` | 是否开启覆盖率构建并上传报告 |
 
-模板更新只影响之后创建的业务工作流，已有业务仓库中的 YAML 需要自行同步。
+例如普通构建使用 `build-type: Release`、`coverage: false`；覆盖率构建使用 `build-type: Debug`、`coverage: true`。
+`coverage: true` 时始终运行测试，即使 `run-tests: false`。
+普通参数放在 `with`，密钥放在 `secrets`；boolean 参数使用 `true` / `false`，不加引号。
+`cpp-ci.yml` 的触发分支由调用方的 `on` 决定，不包含打标和发布归档。
 
-## 运行条件与产物
+### 自己编排每个步骤
 
-- 业务仓库可读取组织 Secret `CI_SSH_KEY`；该 key 能读取源码及私有依赖，并有推送 tag 的权限。
-- 业务仓库有可使用的在线 runner，标签包含 `self-hosted, linux, x64, wwj-cicd`。
-- runner 提供 Docker，能够使用 `localhost:5000/cxx_builder_devtoolset_8:1.3` 镜像。
-- 镜像提供 devtoolset-8、`git_setup`、lcov、genhtml 和 lcov_cobertura 等脚本依赖。
-- 项目提供可执行的 `./build.sh`，支持 `-b -t Release`、`-b -t Debug -C`、`-b -t RelWithDebInfo` 和 `-T`；`-T` 自动创建并推送一个新版本 tag。
-- 构建产物输出到 `build/`，测试可执行文件输出到 `build/run_test/`。
+如果需要自己安排阶段，在 job 的 `steps` 中引用 [`actions/`](actions/)。先完成源码 checkout 和 SSH agent 启动，具体配置可参考 [`cpp-ci.yml`](.github/workflows/cpp-ci.yml)，然后调用：
 
-coverage 上传 `build/test_coverage/`，其中包含 HTML、LCOV 和 Cobertura 报告。
-release 上传 `artifacts/build-output.tar.gz`、`build-info.txt` 和 `SHA256SUMS`。
-归档前会校验构建类型、coverage 开关，以及检出的提交、触发提交和 tag 指向一致。
-入口的 `GITHUB_TOKEN` 只需要 `contents: read`，推送 tag 使用 SSH key。
+```yaml
+- name: Prepare
+  uses: wt-cicd-lab/.github/actions@com_dev
+  with:
+    phase: prepare
 
-官方说明：[创建组织工作流模板](https://docs.github.com/en/actions/how-tos/reuse-automations/create-workflow-templates)、[复用工作流](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)。
+- name: Build
+  uses: wt-cicd-lab/.github/actions@com_dev
+  with:
+    phase: build
+    build-type: Debug
+    coverage: "true"
+```
+
+Action 参数：`phase` 必填；`build-type` 默认 `Release`；`coverage` 默认 `"false"`，传字符串 `"true"` / `"false"`。
+构建后可继续调用 `phase: test`、`phase: coverage`；完整打标与归档流程参考 [`cpp-release.yml`](.github/workflows/cpp-release.yml)。
+
+公共 workflow 在 `jobs.<job>.uses` 中引用，Action 在 `steps[].uses` 中引用。当前模板和示例均使用已发布的 `@com_dev`，它是公共实现的分支名，与业务仓库的 `master` 规则无关。
+
+更多语法见 [GitHub 复用工作流说明](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)。
