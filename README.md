@@ -69,25 +69,29 @@ jobs:
 
 ### 自己编排每个步骤
 
-如果需要自己安排阶段，在 job 的 `steps` 中引用 [`actions/`](actions/)。先完成源码 checkout 和 SSH agent 启动，具体配置可参考 [`cpp-ci.yml`](.github/workflows/cpp-ci.yml)，然后调用：
+在 job 的 `steps` 中依次调用 [`setup`](actions/setup/action.yml) 和 [`build-test`](actions/build-test/action.yml)：
 
 ```yaml
-- name: Prepare
-  uses: wt-cicd-lab/.github/actions@com_dev
+- name: Setup
+  uses: wt-cicd-lab/.github/actions/setup@com_dev
   with:
-    phase: prepare
+    ssh-key: ${{ secrets.CI_SSH_KEY }}
 
-- name: Build
-  uses: wt-cicd-lab/.github/actions@com_dev
+- name: Build and test
+  uses: wt-cicd-lab/.github/actions/build-test@com_dev
   with:
-    phase: build
     build-type: Debug
-    coverage: "true"
+    run-tests: "true"
+    coverage: "false"
 ```
 
-Action 参数：`phase` 必填；`build-type` 默认 `Release`；`coverage` 默认 `"false"`，传字符串 `"true"` / `"false"`。
-构建后可继续调用 `phase: test`、`phase: coverage`；完整打标与归档流程参考 [`cpp-release.yml`](.github/workflows/cpp-release.yml)。
+`setup` 完成源码 checkout 和 SSH agent 初始化：`ssh-key` 必填，`ref` 可选，留空时检出触发事件对应的源码。
+`build-test` 依次执行 Prepare、Build、Test：`build-type` 默认 `Release`，`run-tests` 默认 `"true"`，`coverage` 默认 `"false"`。Action 的开关参数使用字符串 `"true"` / `"false"`；开启 coverage 时始终运行测试。
+
+`build-test` 的 `coverage: "true"` 只开启插桩并运行测试。生成报告还需调用 [`actions/`](actions/action.yml)，传入 `phase: coverage`，再上传 `build/test_coverage/`；完整步骤参考 [`cpp-coverage.yml`](.github/workflows/cpp-coverage.yml)。
+单个阶段也可直接调用 `actions/`：`phase` 必填，支持 `prepare`、`build`、`test`、`coverage`、`tag`、`package`；`build-type` 和 `coverage` 的默认值分别为 `Release`、`"false"`。打标与归档的完整流程参考 [`cpp-release.yml`](.github/workflows/cpp-release.yml)。
 
 公共 workflow 在 `jobs.<job>.uses` 中引用，Action 在 `steps[].uses` 中引用。当前模板和示例均使用已发布的 `@com_dev`，它是公共实现的分支名，与业务仓库的 `master` 规则无关。
+公共实现内部使用 `$/actions/...` 引用同仓库、同一提交的 Action，业务仓库无需复制这些文件。
 
-更多语法见 [GitHub 复用工作流说明](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)。
+更多语法见 [GitHub 复用工作流说明](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)、[同仓库 Action 引用说明](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idstepsuses)。

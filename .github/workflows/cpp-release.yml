@@ -26,41 +26,19 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
 
     steps:
-        - name: Checkout source
-          uses: actions/checkout@v4
+        - name: Setup
+          uses: $/actions/setup
           with:
-            ref: ${{ github.sha }}
-            fetch-depth: 0
-            clean: true
-            persist-credentials: false
             ssh-key: ${{ secrets.CI_SSH_KEY }}
+            ref: ${{ github.sha }}
 
-        - name: Start SSH agent
-          uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+        - name: Build and test Release
+          uses: $/actions/build-test
           with:
-            ssh-private-key: ${{ secrets.CI_SSH_KEY }}
-            ssh-auth-sock: ${{ runner.temp }}/ssh-agent-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}.sock
-            log-public-key: false
-
-        - name: Prepare
-          uses: wt-cicd-lab/.github/actions@com_dev
-          with:
-                phase: prepare
-
-        - name: Build Release
-          uses: wt-cicd-lab/.github/actions@com_dev
-          with:
-            phase: build
             build-type: Release
-            coverage: "false"
-
-        - name: Test
-          uses: wt-cicd-lab/.github/actions@com_dev
-          with:
-            phase: test
 
         - name: Generate and push version tag
-          uses: wt-cicd-lab/.github/actions@com_dev
+          uses: $/actions
           with:
                 phase: tag
 
@@ -84,14 +62,11 @@ jobs:
       RELEASE_TAG: ${{ needs.tag.outputs.tag }}
 
     steps:
-      - name: Checkout tagged source
-        uses: actions/checkout@v4
+      - name: Setup
+        uses: $/actions/setup
         with:
-          ref: refs/tags/${{ needs.tag.outputs.tag}}
-          fetch-depth: 0
-          clean: true
-          persist-credentials: false
           ssh-key: ${{ secrets.CI_SSH_KEY }}
+          ref: refs/tags/${{ needs.tag.outputs.tag}}
 
       - name: Verify release source
         shell: bash
@@ -101,34 +76,13 @@ jobs:
             exit 1
           fi
 
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+      - name: Build and test RelWithDebInfo
+        uses: $/actions/build-test
         with:
-          ssh-private-key: ${{ secrets.CI_SSH_KEY }}
-          ssh-auth-sock: ${{ runner.temp }}/ssh-agent-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}.sock
-          log-public-key: false
-
-      - name: Prepare
-        uses: wt-cicd-lab/.github/actions@com_dev
-        with:
-          phase: prepare
-
-      - name: Compile RelWithDebInfo
-        uses: wt-cicd-lab/.github/actions@com_dev
-        with:
-          phase: build
           build-type: RelWithDebInfo
-          coverage: "false"
-
-      - name: Test release build
-        uses: wt-cicd-lab/.github/actions@com_dev
-        with:
-          phase: test
-          build-type: RelWithDebInfo
-          coverage: "false"
 
       - name: Package
-        uses: wt-cicd-lab/.github/actions@com_dev
+        uses: $/actions
         with:
           phase: package
           build-type: RelWithDebInfo

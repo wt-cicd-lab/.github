@@ -41,41 +41,21 @@ jobs:
         timeout-minutes: 30
 
         steps:
-            - name: Checkout source
-              uses: actions/checkout@v4
+            - name: Setup
+              uses: $/actions/setup
               with:
-                  fetch-depth: 0
-                  persist-credentials: false
-                  ssh-key: ${{ secrets.CI_SSH_KEY }}
+                ssh-key: ${{ secrets.CI_SSH_KEY }}
 
-            - name: Start SSH agent
-              uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+            - name: ${{ (inputs.run-tests || inputs.coverage) && 'Build and test' || 'Build' }}
+              uses: $/actions/build-test
               with:
-                  ssh-private-key: ${{ secrets.CI_SSH_KEY }}
-                  ssh-auth-sock: ${{ runner.temp }}/ssh-agent-${{ github.run_id }}-${{ github.run_attempt }}.sock
-                  log-public-key: false
-
-            - name: Prepare
-              uses: wt-cicd-lab/.github/actions@com_dev
-              with:
-                  phase: prepare
-
-            - name: Build
-              uses: wt-cicd-lab/.github/actions@com_dev
-              with:
-                  phase: build
-                  build-type: ${{ inputs.build-type }}
-                  coverage: ${{ inputs.coverage }}
-
-            - name: Test
-              if: ${{ inputs.run-tests || inputs.coverage }}
-              uses: wt-cicd-lab/.github/actions@com_dev
-              with:
-                  phase: test
+                build-type: ${{ inputs.build-type }}
+                run-tests: ${{ inputs.run-tests }}
+                coverage: ${{ inputs.coverage }}
 
             - name: Coverage
               if: ${{ inputs.coverage }}
-              uses: wt-cicd-lab/.github/actions@com_dev
+              uses: $/actions
               with:
                 phase: coverage
 
