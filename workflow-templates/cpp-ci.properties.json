@@ -1,7 +1,0 @@
-{
-  "name": "wt-cicd-lab C++ 全分支构建",
-  "description": "所有分支（含默认分支）每次 push 执行 Release Build 和 Test，不生成版本 tag；配合手动打标与归档模板使用。",
-  "categories": [
-    "C++"
-  ]
-}

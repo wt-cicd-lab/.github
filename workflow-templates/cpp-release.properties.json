@@ -1,6 +1,6 @@
 {
-  "name": "wt-cicd-lab C++ 默认分支打标与归档",
-  "description": "默认分支每次 push 先通过 Build、Test，再自动生成 tag，编译 RelWithDebInfo 并上传构建 artifact。",
+  "name": "C++ 打标与归档（仅 master）",
+  "description": "仅 master 分支 push 时构建、测试并自动打 tag，再构建 RelWithDebInfo 和上传归档；不创建 GitHub Release 页面。",
   "categories": [
     "C++"
   ]

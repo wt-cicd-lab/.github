@@ -1,0 +1,88 @@
+name: Reusable C++ CI
+
+on:
+    workflow_call:
+        inputs:
+            runner-label:
+                description: Custom label of the runner
+                required: true
+                type: string
+
+            build-type:
+                description: CMake build type
+                required: false
+                type: string
+                default: Release
+
+            run-tests:
+                description: Run unit tests after building
+                required: false
+                type: boolean
+                default: true
+
+            coverage:
+                description: Generate coverage reports
+                required: false
+                type: boolean
+                default: false
+
+        secrets:
+            CI_SSH_KEY:
+                description: SSH private key for checking out source
+                required: true
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        name: C++ CI
+        runs-on: [self-hosted, linux, x64, "${{ inputs.runner-label }}"]
+        timeout-minutes: 30
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+                  ssh-key: ${{ secrets.CI_SSH_KEY }}
+
+            - name: Start SSH agent
+              uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+              with:
+                  ssh-private-key: ${{ secrets.CI_SSH_KEY }}
+                  ssh-auth-sock: ${{ runner.temp }}/ssh-agent-${{ github.run_id }}-${{ github.run_attempt }}.sock
+                  log-public-key: false
+
+            - name: Prepare
+              uses: wt-cicd-lab/.github/actions@com_dev
+              with:
+                  phase: prepare
+
+            - name: Build
+              uses: wt-cicd-lab/.github/actions@com_dev
+              with:
+                  phase: build
+                  build-type: ${{ inputs.build-type }}
+                  coverage: ${{ inputs.coverage }}
+
+            - name: Test
+              if: ${{ inputs.run-tests || inputs.coverage }}
+              uses: wt-cicd-lab/.github/actions@com_dev
+              with:
+                  phase: test
+
+            - name: Coverage
+              if: ${{ inputs.coverage }}
+              uses: wt-cicd-lab/.github/actions@com_dev
+              with:
+                phase: coverage
+
+            - name: Upload coverage report
+              if: ${{ inputs.coverage }}
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+              with:
+                  name: coverage-report
+                  path: build/test_coverage/
+                  if-no-files-found: error
