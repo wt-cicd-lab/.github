@@ -1,0 +1,13 @@
+name: C++ manual tag and artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    uses: wwjszz/cicd_template/.github/workflows/cpp-release.yml@test/wt-cicd-lab
+    secrets:
+      CI_SSH_KEY: ${{ secrets.CI_SSH_KEY }}

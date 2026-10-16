@@ -1,0 +1,7 @@
+{
+  "name": "wt-cicd-lab C++ 开发分支构建",
+  "description": "默认分支以外的分支每次 push 执行 Release Build 和 Test。",
+  "categories": [
+    "C++"
+  ]
+}

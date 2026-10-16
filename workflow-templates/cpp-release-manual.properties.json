@@ -1,0 +1,7 @@
+{
+  "name": "wt-cicd-lab C++ 手动打标与归档",
+  "description": "在默认分支点击 Run workflow：先 Build、Test，再自动计算版本并打 tag，编译 RelWithDebInfo、测试并上传 artifact。无需填写版本号。",
+  "categories": [
+    "C++"
+  ]
+}

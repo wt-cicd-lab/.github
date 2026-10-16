@@ -1,15 +1,14 @@
-name: C++ Tag and Release
+name: C++ tag and artifact
 
 on:
   push:
-    branches: [master]
-    tags-ignore: ['**']
+    branches: [$default-branch]
 
 permissions:
   contents: read
 
 jobs:
   release:
-    uses: wt-cicd-lab/.github/.github/workflows/cpp-release.yml@com_dev
+    uses: wwjszz/cicd_template/.github/workflows/cpp-release.yml@test/wt-cicd-lab
     secrets:
       CI_SSH_KEY: ${{ secrets.CI_SSH_KEY }}
