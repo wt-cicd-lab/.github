@@ -103,6 +103,10 @@ jobs:
       - name: Publish Github Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ needs.tag.outputs.tag }}
+          name: Release ${{ needs.tag.outputs.tag }}
+          generate_release_notes: true
+          fail_on_empty_release: true
           files: |
             artifacts/build-output.tar.gz
             artifacts/build-info.txt
