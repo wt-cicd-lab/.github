@@ -13,7 +13,6 @@ permissions:
 jobs:
   tag:
     name: Generate version tag
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && !github.event.deleted }}
     runs-on: [self-hosted, linux, x64, cpp-cicd-runner]
     timeout-minutes: 30
 
@@ -54,7 +53,6 @@ jobs:
   release:
     name: RelWithDebInfo build and artifact
     needs: tag
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && !github.event.deleted }}
     runs-on: [self-hosted, linux, x64, cpp-cicd-runner]
     timeout-minutes: 30
 

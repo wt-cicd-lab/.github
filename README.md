@@ -20,7 +20,7 @@
 
 也可以直接复制本仓库 [`workflow-templates/`](workflow-templates/) 下的三个 `.yml` 到业务仓库的 `.github/workflows/`，不需要复制 `.properties.json`。
 
-三个模板都忽略 tag push。build、coverage 不能在 `master` 运行；release 只能在 `master` 运行。
+三个模板都忽略 tag push，并在外层调用 job 中跳过删除分支的事件。默认 build、coverage 在非 `master` 分支运行，release 在 `master` 运行；这些触发规则由业务仓库的入口 workflow 控制。
 覆盖率报告和发布归档在对应 Actions 运行页面的 **Artifacts** 下载；release 不创建 GitHub Release 页面。
 
 ## 2. 自己写 workflow、引用和传参
@@ -28,6 +28,7 @@
 ### 使用公共 workflow
 
 三个固定工作流 `cpp-build.yml`、`cpp-coverage.yml`、`cpp-release.yml` 只接收 Secret `CI_SSH_KEY`，没有可通过 `with` 修改的输入参数。
+公共 workflow 不限制触发事件和分支。需要改为 `main` 分支或增加 `workflow_dispatch` 手动触发时，修改业务仓库入口 workflow 的 `on` 即可。
 
 需要自选 runner、构建类型、测试和覆盖率时，引用 [`cpp-ci.yml`](.github/workflows/cpp-ci.yml)。在业务仓库创建 `.github/workflows/custom-ci.yml`：
 

@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   coverage:
+    if: ${{ !github.event.deleted }}
     uses: wt-cicd-lab/.github/.github/workflows/cpp-coverage.yml@com_dev
     secrets:
       CI_SSH_KEY: ${{ secrets.CI_SSH_KEY }}
