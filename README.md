@@ -3,7 +3,7 @@
 使用前准备好：
 
 - 仓库或组织 Secret `CI_SSH_KEY`，用于拉取源码、私有依赖和推送 tag，并授权业务仓库使用。
-- 在线 runner，标签包含 `self-hosted, linux, x64, wwj-cicd`；提供 Docker 和镜像 `localhost:5000/cxx_builder_devtoolset_8:1.3`。
+- 在线 runner，标签包含 `self-hosted, linux, x64, cpp-cicd-runner`；提供 Docker 和镜像 `localhost:5000/cxx_builder_devtoolset_8:1.3`。
 - 可执行的项目 `./build.sh`，支持 `-b -t Release`、`-b -t Debug -C`、`-b -t RelWithDebInfo`、`-T`。构建输出到 `build/`，测试程序放在 `build/run_test/`；`-T` 负责创建并推送新 tag。
 
 ## 1. 使用三个模板
@@ -47,7 +47,7 @@ jobs:
   ci:
     uses: wt-cicd-lab/.github/.github/workflows/cpp-ci.yml@com_dev
     with:
-      runner-label: wwj-cicd
+      runner-label: cpp-cicd-runner
       build-type: Debug
       run-tests: true
       coverage: true
@@ -57,7 +57,7 @@ jobs:
 
 | 参数 | 类型 | 必填 / 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `runner-label` | string | 必填 | runner 的额外标签，示例为 `wwj-cicd` |
+| `runner-label` | string | 必填 | runner 的额外标签，示例为 `cpp-cicd-runner` |
 | `build-type` | string | `Release` | `Debug`、`Release`、`RelWithDebInfo` |
 | `run-tests` | boolean | `true` | 是否运行测试 |
 | `coverage` | boolean | `false` | 是否开启覆盖率构建并上传报告 |
