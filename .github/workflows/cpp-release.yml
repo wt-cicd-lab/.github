@@ -51,6 +51,9 @@ jobs:
 
 
   release:
+    permissions:
+      contents: write
+      
     name: RelWithDebInfo build and artifact
     needs: tag
     runs-on: [self-hosted, linux, x64, cpp-cicd-runner]
@@ -96,3 +99,11 @@ jobs:
             artifacts/SHA256SUMS
           if-no-files-found: error
           compression-level: 0
+
+      - name: Publish Github Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            artifacts/build-output.tar.gz
+            artifacts/build-info.txt
+            artifacts/SHA256SUMS
